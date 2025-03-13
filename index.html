@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receita WS</title>
+    <style>
+        body {
+            background-color: rgb(172, 158, 255);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        h1 {
+            font-family: Verdana, Geneva, Tahoma, sans-serif;
+            font-size: 60px;
+            color: rgb(79, 7, 112);
+        }
+
+        #CNPJ {
+            width: 80%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            transition: border-color 0.3s;
+        }
+
+        #CNPJ:focus {
+            border-color: #784acc;
+
+        }
+
+        /* Botão */
+        button {
+            padding: 10px 20px;
+            background-color: #7700ff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #b087f3;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Consulta CNPJ
+            <img src="icon.png" alt="Ícone"
+                style="width: 70px; height: 70px; margin-right: 10px; vertical-align: middle;">
+        </h1>
+        <input type="text" id="CNPJ" placeholder="Digite o CNPJ (14 dígitos)">
+        <button onclick="buscarCNPJ()">Buscar</button>
+        <div id="resultado"></div>
+    </div>
+
+    <script>
+        function buscarCNPJ() {
+            const CNPJInput = document.getElementById('CNPJ');
+            const CNPJ = CNPJInput.value.replace(/\D/g, '');
+            const resultadoDiv = document.getElementById('resultado');
+            resultadoDiv.innerHTML = '';
+
+            if (CNPJ.length !== 14) { // Verifica o comprimento do valor do CNPJ
+                resultadoDiv.innerHTML = '<p style="color: red;">CNPJ inválido. Digite 14 dígitos.</p>';
+                return;
+            }
+            const url = `https://cors-anywhere.herokuapp.com/https://receitaws.com.br/v1/cnpj/${CNPJ}`; 
+
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Erro na requisição: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.erro) {
+                        resultadoDiv.innerHTML = '<p style="color: red;">CNPJ não encontrado.</p>';
+                    } else {
+                        resultadoDiv.innerHTML = `
+                    <p><strong>CNPJ:</strong> ${data.cnpj}</p>
+                    <p><strong>Nome Empresarial:</strong> ${data.nome}</p>
+                    <p><strong>Atividade Econômica Primária:</strong> ${data.atividade_principal[0].text}</p>
+                    <p><strong>Localidade:</strong> ${data.municipio}</p>
+                `;
+                    }
+                })
+
+                .catch(error => {
+                    resultadoDiv.innerHTML = `<p style="color: red;">Erro ao buscar CNPJ: ${error.message}</p>`;
+                });
+        }
+    </script>
+</body>
+
+</html>
