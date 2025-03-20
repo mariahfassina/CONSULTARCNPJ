@@ -5,9 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Receita WS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <style>
         body {
-            background-color: rgb(172, 158, 255);
+            background-color: rgb(158, 176, 255);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -16,8 +17,13 @@
         h1 {
             font-family: Verdana, Geneva, Tahoma, sans-serif;
             font-size: 60px;
-            color: rgb(79, 7, 112);
+            color: rgb(21, 25, 248);
+            text-align: center;
+            display: flex; /* Alteração: Usar flex para alinhar título e imagem */
+            align-items: center; /* Alteração: Alinhar verticalmente os itens */
+            justify-content: center; /* Alteração: Centralizar horizontalmente */
         }
+    
 
         #CNPJ {
             width: 80%;
@@ -27,17 +33,18 @@
             border-radius: 4px;
             margin-bottom: 20px;
             transition: border-color 0.3s;
+            text-align: center;
         }
 
         #CNPJ:focus {
-            border-color: #784acc;
+            border-color: #4885d4;
 
         }
 
-        /* Botão */
+
         button {
             padding: 10px 20px;
-            background-color: #7700ff;
+            background-color: #001aff;
             color: #fff;
             border: none;
             border-radius: 4px;
@@ -47,8 +54,63 @@
         }
 
         button:hover {
-            background-color: #b087f3;
+            background-color: #1b39bb;
         }
+
+        #resultado {
+            color: #0400ff;
+            font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+        
+        }
+
+        #loading {
+            color: #392de9;
+            font-size: 1.2em;
+        }
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 48px;
+            }
+
+            .container {
+                padding: 15px;
+            }
+
+            #CNPJ,
+            button {
+                padding: 8px;
+            }
+
+            #resultado {
+                padding: 15px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 36px;
+            }
+
+            .container {
+                padding: 10px;
+            }
+
+            #CNPJ,
+            button {
+                padding: 6px;
+                font-size: 14px;
+            }
+
+            #resultado {
+                padding: 10px;
+                font-size: 0.9em;
+            }
+
+            #loading {
+                font-size: 1em;
+            }
+        }
+        
     </style>
 </head>
 
@@ -61,6 +123,9 @@
         <input type="text" id="CNPJ" placeholder="Digite o CNPJ (14 dígitos)">
         <button onclick="buscarCNPJ()">Buscar</button>
         <div id="resultado"></div>
+        <div id="loading" style="display: none;">
+            <i class="fas fa-spinner fa-spin"></i> Carregando...
+        </div>
     </div>
 
     <script>
@@ -68,36 +133,59 @@
             const CNPJInput = document.getElementById('CNPJ');
             const CNPJ = CNPJInput.value.replace(/\D/g, '');
             const resultadoDiv = document.getElementById('resultado');
+            const loadingDiv = document.getElementById('loading');
+            const botaoBuscar = document.querySelector('button');
             resultadoDiv.innerHTML = '';
 
             if (CNPJ.length !== 14) { // Verifica o comprimento do valor do CNPJ
-                resultadoDiv.innerHTML = '<p style="color: red;">CNPJ inválido. Digite 14 dígitos.</p>';
+                resultadoDiv.innerHTML = '<p>CNPJ inválido. Digite 14 dígitos.</p>';
                 return;
             }
-            const url = `https://cors-anywhere.herokuapp.com/https://receitaws.com.br/v1/cnpj/${CNPJ}`; 
+            const url = `https://cors-anywhere.herokuapp.com/https://receitaws.com.br/v1/cnpj/${CNPJ}`;
+            document.getElementById('loading').style.display = 'block'; // Exibe o spinner
+            resultadoDiv.innerHTML = ''; // Limpa o resultado anterior
 
-            fetch(url)
+
+            fetch(url, {
+                headers: {
+                    'Origin': '*' // Substitua pela sua origem
+                }
+            })
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error(`Erro na requisição: ${response.status}`);
+                        if (response.status === 400) {
+                            throw new Error('CNPJ inválido.');
+                        } else if (response.status === 404) {
+                            throw new Error('CNPJ não encontrado.');
+                        } else if (response.status === 429) {
+                            throw new Error('Limite de requisições excedido. Tente novamente mais tarde.');
+                        } else if (response.status === 500 || response.status === 504) {
+                            throw new Error('Erro no servidor da API. Tente novamente mais tarde.');
+                        } else {
+                            throw new Error(`Erro na requisição: ${response.status}`);
+                        }
                     }
                     return response.json();
                 })
                 .then(data => {
+                    loadingDiv.style.display = 'none'; // Oculta o spinner
+                    botaoBuscar.disabled = false; // Habilita o botão
+
                     if (data.erro) {
-                        resultadoDiv.innerHTML = '<p style="color: red;">CNPJ não encontrado.</p>';
+                        resultadoDiv.innerHTML = '<p>CNPJ não encontrado.</p>';
                     } else {
                         resultadoDiv.innerHTML = `
-                    <p><strong>CNPJ:</strong> ${data.cnpj}</p>
-                    <p><strong>Nome Empresarial:</strong> ${data.nome}</p>
-                    <p><strong>Atividade Econômica Primária:</strong> ${data.atividade_principal[0].text}</p>
-                    <p><strong>Localidade:</strong> ${data.municipio}</p>
-                `;
+                        <p><strong>CNPJ:</strong> ${data.cnpj}</p>
+                        <p><strong>Nome Empresarial:</strong> ${data.nome}</p>
+                        <p><strong>Atividade Econômica Primária:</strong> ${data.atividade_principal[0].text}</p>
+                        <p><strong>Localidade:</strong> ${data.municipio}</p>
+                    `;
                     }
                 })
-
                 .catch(error => {
-                    resultadoDiv.innerHTML = `<p style="color: red;">Erro ao buscar CNPJ: ${error.message}</p>`;
+                    loadingDiv.style.display = 'none'; // Oculta o spinner
+                    botaoBuscar.disabled = false; // Habilita o botão
+                    resultadoDiv.innerHTML = `<p style=">Erro ao buscar CNPJ: ${error.message}</p>`;
                 });
         }
     </script>
